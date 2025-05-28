@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Stok ve Ürün Bilgisi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://www.bluemint.com/Themes/BluemintTheme/Content/images/bg.jpg') no-repeat center center fixed;
+            background-size: cover;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background-color: rgba(255,255,255,0.9);
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+        }
+        input, button {
+            width: calc(100% - 20px);
+            margin: 10px;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+        }
+        button {
+            cursor: pointer;
+            background-color: #222;
+            color: white;
+        }
+        #reader {
+            width: 100%;
+            margin-top: 10px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+        img {
+            max-width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Stok ve Ürün Bilgisi</h1>
+
+    <input type="text" id="manualBarcode" placeholder="Barkodu Elle Girin (isteğe bağlı)">
+    <input type="file" id="barcodeFileInput" accept="image/*">
+    <button onclick="scanFromFile()">📤 Upload ile Tara</button>
+
+    <div id="reader"></div>
+    <button onclick="startScanner()">📷 Kamerayı Aç</button>
+
+    <input type="text" id="kategoriInput" placeholder="Kategori Yazınız (ör: gömlek)">
+    <button onclick="sorgula()">🔍 Sorgula</button>
+    <button onclick="clearAll()">🧹 Temizle</button>
+
+    <div id="result"></div>
+</div>
+
+<script>
+    let barkod = "";
+
+    function startScanner() {
+        const html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start(
+            { facingMode: "environment" },
+            { fps: 10, qrbox: 250 },
+            qrCodeMessage => {
+                barkod = qrCodeMessage;
+                html5QrCode.stop();
+                document.getElementById("manualBarcode").value = barkod;
+            }
+        ).catch(err => console.error(err));
+    }
+
+    async function scanFromFile() {
+        const imageFile = document.getElementById('barcodeFileInput').files[0];
+        const html5QrCode = new Html5Qrcode("reader");
+        const decoded = await html5QrCode.scanFile(imageFile, true);
+        if (decoded) {
+            barkod = decoded;
+            document.getElementById("manualBarcode").value = barkod;
+        } else {
+            alert("Barkod okunamadı.");
+        }
+    }
+
+    function clearAll() {
+        document.getElementById("manualBarcode").value = "";
+        document.getElementById("kategoriInput").value = "";
+        document.getElementById("result").innerHTML = "";
+        document.getElementById("barcodeFileInput").value = "";
+    }
+
+    function sorgula() {
+        const barcode = document.getElementById("manualBarcode").value.trim();
+        const kategori = document.getElementById("kategoriInput").value.trim().toLowerCase().replace(/\s+/g, "-");
+
+        if (!barcode || !kategori) {
+            alert("Lütfen barkod ve kategori giriniz.");
+            return;
+        }
+
+        fetch("https://urun-gorsel-api.onrender.com/data.json")
+            .then(res => res.json())
+            .then(data => {
+                const match = data.find(x => x["Ürün Barkodu"] === barcode);
+                if (!match) {
+                    document.getElementById("result").innerHTML = "<p>Ürün bulunamadı.</p>";
+                    return;
+                }
+
+                const kod = match["Ürün Kodu"];
+                const renk = match["Renk Açıklaması"].toLowerCase().replace(/\s+/g, "-").normalize("NFD").replace(/[̀-ͯ]/g, "");
+                const imgUrl = `https://www.bluemint.com/images/thumbs/${kod}_${renk}_800.jpeg`;
+
+                document.getElementById("result").innerHTML = `
+                    <p><strong>Ürün:</strong> ${match["Ürün Adı"]}</p>
+                    <p><strong>Renk:</strong> ${match["Renk Açıklaması"]}</p>
+                    <p><strong>Kategori:</strong> ${kategori}</p>
+                    <img src="${imgUrl}" alt="Ürün Görseli">
+                `;
+            });
+    }
+</script>
+
+</body>
+</html>
