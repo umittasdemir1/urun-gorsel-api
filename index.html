@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Ürün Görsel Getir</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      text-align: center;
+      padding-top: 50px;
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px;
+      font-size: 16px;
+    }
+    img {
+      margin-top: 20px;
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Ürün Görseli Getirici</h2>
+  <input type="text" id="urun_adi" placeholder="Ürün Adı (örnek: PALMA)" />
+  <input type="text" id="renk" placeholder="Renk (örnek: DARK NAVY)" />
+  <input type="text" id="kategori" placeholder="Kategori (örnek: gomlek)" />
+  <br>
+  <button onclick="getir()">Görseli Getir</button>
+  <br>
+  <img id="urunResmi" src="" alt="Ürün Görseli Burada Görünecek" />
+
+  <script>
+    async function getir() {
+      const urun_adi = document.getElementById("urun_adi").value;
+      const renk = document.getElementById("renk").value;
+      const kategori = document.getElementById("kategori").value;
+
+      const response = await fetch('/get_image', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({urun_adi, renk, kategori})
+      });
+
+      const data = await response.json();
+      if (data.image_url) {
+        document.getElementById("urunResmi").src = data.image_url;
+      } else {
+        alert("Görsel bulunamadı.");
+      }
+    }
+  </script>
+</body>
+</html>
